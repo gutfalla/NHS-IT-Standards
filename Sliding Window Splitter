@@ -74,10 +74,3 @@ for doc in NHS_itstds:
     for chunk in chunks:
         chunk.update(doc_copy)
     NHSchunks.extend(chunks)
-
-
-# Split a specific document into paragraphs by blank lines.
-import re
-text = NHS_itstds[45]['content']
-paragraphs = re.split(r"\n\s*\n", text.strip())
-
