@@ -1,4 +1,39 @@
+"""
+Updated on Wed Dec 24 02:22:54 2025
+
+@author: HernanFallaGutierrez
+"""
+
 def sliding_window(seq, size, step):
+    """
+    Split a sequence into overlapping chunks using a sliding window.
+
+    This is a practical alternative to naive fixed-length chunking when working
+    with long inputs (e.g., documents for LLM prompting or retrieval), because
+    overlap helps preserve context across chunk boundaries.
+
+    Args:
+        seq: The input sequence to chunk (commonly a string, but can be any
+            sliceable sequence such as a list).
+        size: The length of each chunk (window size). Must be > 0.
+        step: The number of positions to advance between chunks. Must be > 0.
+            If step < size, chunks will overlap.
+
+    Returns:
+        A list of dictionaries, each with:
+            - 'start': The starting index of the chunk in `seq`.
+            - 'chunk': The sliced subsequence `seq[start:start+size]`.
+
+    Raises:
+        ValueError: If `size` or `step` is not positive.
+
+    Example:
+        >>> sliding_window("abcdefghij", size=4, step=2)
+        [{'start': 0, 'chunk': 'abcd'},
+         {'start': 2, 'chunk': 'cdef'},
+         {'start': 4, 'chunk': 'efgh'},
+         {'start': 6, 'chunk': 'ghij'}]
+    """
     if size <= 0 or step <= 0:
         raise ValueError("size and step must be positive")
 
@@ -12,9 +47,27 @@ def sliding_window(seq, size, step):
 
     return result
 
+
+# Build a chunked corpus from NHS_itstds documents.
+# Each output chunk retains the source document's metadata and adds:
+#   - 'start': start index of the chunk in the original content
+#   - 'chunk': the chunk text itself
 NHSchunks = []
 
 for doc in NHS_itstds:
+    """
+    Convert each NHS document into overlapping chunks and carry metadata along.
+
+    For each document:
+      1) Copy the document dict to avoid mutating the original.
+      2) Remove 'content' and chunk it with a sliding window.
+      3) Merge the remaining metadata into each produced chunk record.
+      4) Append all chunk records to the global `NHSchunks` list.
+
+    Chunk parameters:
+      - size=2000 characters
+      - step=1000 characters (50% overlap)
+    """
     doc_copy = doc.copy()
     doc_content = doc_copy.pop('content')
     chunks = sliding_window(doc_content, 2000, 1000)
@@ -22,8 +75,9 @@ for doc in NHS_itstds:
         chunk.update(doc_copy)
     NHSchunks.extend(chunks)
 
+
+# Split a specific document into paragraphs by blank lines.
 import re
 text = NHS_itstds[45]['content']
 paragraphs = re.split(r"\n\s*\n", text.strip())
 
-import re
