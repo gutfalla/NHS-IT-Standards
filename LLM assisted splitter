@@ -1,16 +1,54 @@
+"""
+Updated on Wed Dec 24 03:32:10 2025
+
+@author: HernanFallaGutierrez
+"""
+
 from openai import OpenAI
+from tqdm.auto import tqdm
 
 openai_client = OpenAI()
 
 
-def llm(prompt, model='gpt-4o-mini'):
-    messages = [
-        {"role": "user", "content": prompt}
-    ]
+def llm(prompt, model="gpt-4o-mini"):
+    """
+    Intelligent (LLM-based) chunking for complex documents sends a prompt to an
+    Large Language Model and return the generated text. is appropriate when
+    documents have irregular or non-standard organization, chunks must align
+    with concepts or topics, Domain-specific rules are hard to encode or output
+    quality is more important than processing expense.
+
+    Args:
+        prompt: User prompt as a string.
+        model: Model name to use.
+
+    Returns:
+        The model's text output.
+    
+    Notes: 
+        You can use any LLM provider. For OpenAI, you need an API key from:
+            https://platform.openai.com/api-keys
+            
+            1. Set your API key as an environment variable:
+                
+                export OPENAI_API_KEY='your-api-key'
+                
+            2. Install the OpenAI SDK:
+                
+                uv add openai
+            
+            3. Start Jupyter:
+                
+                uv run jupyter notebook
+
+    Never commit API keys to git. Anyone with access to your key can use it, 
+    and you might be billed for their usage.
+    """
+    messages = [{"role": "user", "content": prompt}]
 
     response = openai_client.responses.create(
-        model='gpt-4o-mini',
-        input=messages
+        model=model,
+        input=messages,
     )
 
     return response.output_text
@@ -18,7 +56,7 @@ def llm(prompt, model='gpt-4o-mini'):
 
 prompt_template = """
 Split the provided document into logical sections
-that make sense for a Q&A system.
+that make sense for a regulatory document.
 
 Each section should be self-contained and cover
 a specific topic or concept.
@@ -42,23 +80,37 @@ Another section content
 ---
 """.strip()
 
+
 def intelligent_chunking(text):
+    """
+    Split a document into semantically meaningful sections using an LLM.
+
+    The LLM is prompted to identify logical sections that are suitable for
+    retrieval and Q&A use cases.
+
+    Args:
+        text: Full document text.
+
+    Returns:
+        A list of section strings, each representing a coherent topic.
+    """
     prompt = prompt_template.format(document=text)
     response = llm(prompt)
-    sections = response.split('---')
-    sections = [s.strip() for s in sections if s.strip()]
-    return sections
 
-from tqdm.auto import tqdm
+    sections = response.split("---")
+    return [s.strip() for s in sections if s.strip()]
 
+
+# Build NHSchunks using LLM-based chunking.
+# Each chunk retains document metadata and adds a 'section' field.
 NHSchunks = []
 
 for doc in tqdm(NHS_itstds):
     doc_copy = doc.copy()
-    doc_content = doc_copy.pop('content')
+    doc_content = doc_copy.pop("content")
 
     sections = intelligent_chunking(doc_content)
     for section in sections:
         section_doc = doc_copy.copy()
-        section_doc['section'] = section
+        section_doc["section"] = section
         NHSchunks.append(section_doc)
