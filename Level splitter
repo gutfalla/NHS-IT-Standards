@@ -1,51 +1,80 @@
+import re
+
 def split_markdown_by_level(text, level=2):
     """
-    Split markdown text by a specific header level.
-    
-    :param text: Markdown text as a string
-    :param level: Header level to split on
-    :return: List of sections as strings
+    Split Markdown text into sections using a specific header level.
+
+    This leverages document structure (headers) rather than visual formatting
+    (blank lines), which is often a better fit for technical documentation.
+
+    Args:
+        text: Markdown source as a single string.
+        level: Header level to split on (e.g., 2 for "##", 3 for "###").
+
+    Returns:
+        A list of section strings. Each section includes the matching header
+        line and the content that follows it, up to (but not including) the
+        next header of the same level.
+
+    Notes:
+        - The regex is anchored to the start of a line (^) and uses MULTILINE
+        so that headers are detected throughout the document.
+        - `re.split()` with capturing groups returns the delimiters as well,
+        which is why the loop advances by 3:
+        [before, group1, group2, after, group1, group2, after, ...]
+        where:
+        group1 = "## " (the hash prefix + trailing space)
+        group2 = "Header title"
+
+    Example:
+        >>> md = "## A\\nText\\n\\n## B\\nMore"
+        >>> split_markdown_by_level(md, level=2)
+        ['## A\\n\\nText', '## B\\n\\nMore']
     """
-    # This regex matches markdown headers
-    # For level 2, it matches lines starting with "## "
     header_pattern = r'^(#{' + str(level) + r'} )(.+)$'
     pattern = re.compile(header_pattern, re.MULTILINE)
 
-    # Split and keep the headers
     parts = pattern.split(text)
-    
+
     sections = []
     for i in range(1, len(parts), 3):
-        # We step by 3 because regex.split() with
-        # capturing groups returns:
-        # [before_match, group1, group2, after_match, ...]
-        # here group1 is "## ", group2 is the header text
-        header = parts[i] + parts[i+1]  # "## " + "Title"
-        header = header.strip()
+        header = (parts[i] + parts[i + 1]).strip()
 
-        # Get the content after this header
         content = ""
-        if i+2 < len(parts):
-            content = parts[i+2].strip()
+        if i + 2 < len(parts):
+            content = parts[i + 2].strip()
 
-        if content:
-            section = f'{header}\n\n{content}'
-        else:
-            section = header
-        sections.append(section)
-    
+        sections.append(f"{header}\n\n{content}" if content else header)
+
     return sections
 
+
+# Example usage: split one document into level-2 sections.
+text = NHS_itstds[45]['content']
 sections = split_markdown_by_level(text, level=2)
+
+
+"""
+Building NHSchunks from section splits:
+Below we transform each document in `NHS_itstds` into multiple records, one per
+section, while preserving the document metadata.
+
+For each document:
+  1) Copy the metadata dict.
+  2) Remove 'content' so we can split it into sections.
+  3) For each resulting section, create a new dict that contains the original
+     metadata plus a 'section' field holding the section text.
+"""
 
 NHSchunks = []
 
 for doc in NHS_itstds:
     doc_copy = doc.copy()
     doc_content = doc_copy.pop('content')
+
     sections = split_markdown_by_level(doc_content, level=2)
+
     for section in sections:
         section_doc = doc_copy.copy()
         section_doc['section'] = section
         NHSchunks.append(section_doc)
-
