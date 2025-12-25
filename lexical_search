@@ -1,0 +1,37 @@
+"""
+Created on Thu Dec 25 01:45:17 2025
+
+@author: hernandariofallagutierrez
+"""
+
+"""
+The simplest type of search is text search.
+
+Text search works by finding all documents that contain at least one word
+from the query. Documents that contain more words from the query are
+considered more relevant and ranked higher in the results.
+
+We use a lightweight in-memory search engine called
+`minsearch`. It indexes text fields from a collection of documents and
+allows keyword-based relevance search without requiring a database or
+external service.
+
+Installation: in shell type
+    uv add minsearch
+
+We index the documents chhunked using the sliding window splitter
+"""
+
+from minsearch import Index
+
+index = Index(
+    text_fields=["chunk", "title", "description", "filename"],
+    keyword_fields=[]
+)
+
+index.fit(NHSchunks)
+
+# Example usage
+
+query = "What is the development stack for business applications"
+results = index.search(query)
